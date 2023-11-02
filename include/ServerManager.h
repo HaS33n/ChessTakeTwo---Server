@@ -2,7 +2,9 @@
 #define DEF_PORT 53000
 #include <iostream>
 #include <SFML/Network.hpp>
-#include <list>
+#include <deque>
+#include <vector>
+#include "Utilities.h"
 
 class ServerManager{
 
@@ -13,5 +15,6 @@ private:
 
     sf::SocketSelector selector;
     sf::TcpListener listener;
-    std::list<sf::TcpSocket*> clients;
+    std::deque<sf::TcpSocket*> clients;
+    std::vector<Game*> games;
 };

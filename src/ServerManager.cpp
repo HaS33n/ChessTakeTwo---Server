@@ -10,7 +10,7 @@ ServerManager::ServerManager()
 void ServerManager::runServer(){
     while (true)
     {
-        if (selector.wait())
+        if (selector.wait(sf::seconds(1)))
         {
             if (selector.isReady(listener))
             {
@@ -23,23 +23,37 @@ void ServerManager::runServer(){
                 else
                     delete client;
             }
-            else
+        
+            for(auto& it : clients)
             {
-                for (std::list<sf::TcpSocket*>::iterator it = clients.begin(); it != clients.end(); ++it)
+                if (selector.isReady(*it))
                 {
-                    sf::TcpSocket& client = **it;
-                    if (selector.isReady(client))
-                    {
-                    // The client has sent some data, we can receive it
-                        sf::Packet packet;
-                        if (client.receive(packet) == sf::Socket::Done)
-                        {
-                            ...
-                        }
-                    }
+                    sf::Packet packet;
+                    if (it->receive(packet) == sf::Socket::Done)
+                        packet.clear(); //i dont care whats inside, they just have to wait lol
                 }
             }
+
+            for(auto& it : games)
+                it->testSockets(selector);
+
+
+            
         }
+
+        while(clients.size()>=2){
+            User* u1 = new User(clients.front(),chess_color::white);
+            //selector.remove(*clients.front());
+            clients.pop_front();
+            
+            User* u2 = new User(clients.front(),chess_color::white);
+            //selector.remove(*clients.front());
+            clients.pop_front();
+
+            Game* ngame = new Game(u1,u2);
+            games.push_back(ngame);
+        }
+
     }
 
 }
