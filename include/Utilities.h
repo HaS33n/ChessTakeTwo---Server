@@ -5,10 +5,13 @@
 enum class chess_color{white,black};
 enum class pieceType{king,queen,knight,bishop,rook,pawn};
 
+
 class Piece {
 
 public:
     Piece(chess_color color, pieceType t){clr = color; type = t;}
+    const chess_color& getColor(){return clr;}
+    const pieceType& getType(){return type;}
 private:  
     chess_color clr;
     pieceType type;
@@ -21,6 +24,7 @@ class Square {
 public:
     Square(chess_color clr){color = clr; resident = nullptr;}
     void addResident(chess_color color, pieceType t){if(resident==nullptr) resident = new Piece(color,t);}
+    Piece* getResident(){return resident;}
 
 private:
     //friend void movePiece(Square*, Square*); // <----uncomment when movePiece is defined <--- TODO
@@ -39,12 +43,15 @@ private:
 
 class Game{
 public:
-    Game(User* u1, User* u2){usw=u1;usb=u2;whoseTurn=usw;}
+    Game(User* u1, User* u2);
     void testSockets(const sf::SocketSelector& slctr);
     
 private:
-    void processInput(){}; // <---- TODO
+    void processInput();
+    bool checkMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    
     User* usw; //user white
     User* usb; //user black
     User* whoseTurn;
+    Square* board[8][8];
 };
