@@ -15,17 +15,22 @@ void ServerManager::runServer(){
             if (selector.isReady(listener))
             {
                 sf::TcpSocket* client = new sf::TcpSocket;
-                if (listener.accept(*client) == sf::Socket::Done)
+                if (listener.accept(*client) == sf::Socket::Done) //accept a client
                 {
                     clients.push_back(client);
-                    //send client their position in queue <------TODO
+                    //send back the queue position
+                    int qpos = clients.size();
+                    sf::Packet acPack;
+                    acPack << qpos;
+                    client->send(acPack);
+
                     selector.add(*client);
                 }
                 else
                     delete client;
             }
         
-            for(auto& it : clients)
+            for(auto& it : clients) //check for queued clients if they are sending something they shouldn't
             {
                 if (selector.isReady(*it))
                 {
@@ -35,14 +40,11 @@ void ServerManager::runServer(){
                 }
             }
 
-            for(auto& it : games)
+            for(auto& it : games) //check ongoing games
                 it->testSockets(selector);
-
-
-            
         }
 
-        while(clients.size()>=2){
+        while(clients.size()>=2){ //make new games as long as players are available
             User* u1 = new User(clients.front(),chess_color::white);
             //selector.remove(*clients.front());
             clients.pop_front();

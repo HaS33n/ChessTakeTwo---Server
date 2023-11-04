@@ -1,11 +1,21 @@
 #include "../include/Utilities.h"
 
 Game::Game(User* u1, User* u2){
-	//send users their color <--- TODO
     usw=u1;
     usb=u2;
     whoseTurn = usw;
 
+	bool isWhite = true;
+	//send to u1 their color
+	
+	sf::Packet p1;
+	p1<<isWhite;
+	u1->sckt->send(p1);
+
+	isWhite = false;
+	sf::Packet p2;
+	p2<<isWhite;
+	u1->sckt->send(p2);
 
     //init the board
 	chess_color previous; 
@@ -63,15 +73,22 @@ Game::Game(User* u1, User* u2){
 
 	//kings
 	board[4][0]->addResident(chess_color::white,pieceType::king);
+	w_kingptr = board[4][0];
+	w_king_pos = sf::Vector2u(4,0);
 	board[4][7]->addResident(chess_color::black,pieceType::king);
+	b_kingptr = board[4][7];
+	b_king_pos = sf::Vector2u(4,7);
 }
 
 void Game::testSockets(const sf::SocketSelector& slctr){
     if(!slctr.isReady(*usw->sckt) && !slctr.isReady(*usb->sckt))
         return;
 
-    if(slctr.isReady(*whoseTurn->sckt))
-        processInput();
+    if(slctr.isReady(*whoseTurn->sckt)){
+		processInput();
+		return;
+	}
+        
 
     User* ptr = usw; //ptr points to user who doesnt have right to move now
     if(ptr == whoseTurn)
@@ -94,19 +111,42 @@ void Game::processInput(){ //need proper error handling
         std::cout<<"failed reading \n";
         return;
     }
-    if(!checkMove(start_pos,end_pos))
-		return; //send decline to user TODO
 
-	else
-		return; //send accept to user and update the board TODO
+    if(!checkMove(start_pos,end_pos)){
+		//send move discard (should be a func)
+		sf::Packet rPack;
+		bool is_move_possible = false;
+		rPack<<is_move_possible;
+		whoseTurn->sckt->send(rPack);
+		return;
+	}
+		
+
+	else{
+		//send move approval
+		sf::Packet rPack;
+		bool is_move_possible = true;
+		rPack<<is_move_possible;
+		whoseTurn->sckt->send(rPack);
+
+		//send to other user move info
+		sf::Packet u2_pack;
+		u2_pack<<start_pos.x<<start_pos.y<<end_pos.x<<end_pos.y; //send additional info if he's checked + special moves TODO
+		if(whoseTurn == usw)
+			usb->sckt->send(u2_pack);
+		
+		else
+			usw->sckt->send(u2_pack);
+
+		updateBoard(board[start_pos.x][start_pos.y],board[end_pos.x][end_pos.y], end_pos);
+		return; 
+	}
+		
 	
-
-    //.... MORE
-    
 }
 
 bool Game::checkMove(sf::Vector2u start_pos, sf::Vector2u end_pos){
-	//check if values are correct (in range)
+	//check if values are correct (in range) maybe TODO (idk if its necessary)
 	
     if(board[start_pos.x][start_pos.y]->getResident() == nullptr) //move from empty square
         return false;
@@ -122,7 +162,7 @@ bool Game::checkMove(sf::Vector2u start_pos, sf::Vector2u end_pos){
 	if(start_pos == end_pos) //move in place (?)
 		return false;
 
-	switch (board[start_pos.x][start_pos.y]->getResident()->getType())
+	switch (board[start_pos.x][start_pos.y]->getResident()->getType()) //this HAS TO be a function
 	{
 	case pieceType::pawn:
 		if(!pawnMove(start_pos,end_pos))
@@ -168,6 +208,71 @@ bool Game::checkMove(sf::Vector2u start_pos, sf::Vector2u end_pos){
 
 	//check for checks
 
+	Square* kingptr;
+	chess_color pieces_color;
+	sf::Vector2u kingcrds;
+
+	if(whoseTurn->color == chess_color::white){
+		kingptr = w_kingptr;
+		pieces_color = chess_color::black;
+		kingcrds = w_king_pos;
+	}
+		
+
+	else{
+		kingptr = b_kingptr;
+		pieces_color = chess_color::white;
+		kingcrds = b_king_pos;
+	}
+		
+	for(int i=0;i<8;i++){ //checking if king is checked, this should also be a function.....
+		for(int j=0;j<8;j++){
+			Square* checked_sqr = board[i][j];
+			if(checked_sqr->getResident() != nullptr){
+				if(checked_sqr->getResident()->getColor() == pieces_color && checked_sqr->getResident()->getType() != pieceType::king)
+				{
+					switch (checked_sqr->getResident()->getType()) //ugly code layout but whatever
+	{
+	case pieceType::pawn:
+		if(pawnMove(sf::Vector2u(i,j),kingcrds)) // here need to add parameter, wheter its checking for check or not (you can only check side)
+			return false;
+		
+		break;
+
+	case pieceType::knight:
+		if(knightMove(sf::Vector2u(i,j),kingcrds))
+			return false;
+		
+		break;
+
+	case pieceType::bishop:
+		if(bishopMove(sf::Vector2u(i,j),kingcrds))
+			return false;
+		
+		break;
+
+	case pieceType::rook:
+		if(rookMove(sf::Vector2u(i,j),kingcrds))
+			return false;
+		
+		break;
+
+	case pieceType::queen:
+		if(queenMove(sf::Vector2u(i,j),kingcrds))
+			return false;
+		
+		break;
+
+	default:
+		std::cout<<"??? \n";
+		break;
+	}
+				}
+			}
+		}
+	}
+	
+
 	return true;
 }
 
@@ -185,7 +290,7 @@ bool Game::pawnMove(sf::Vector2u start_pos, sf::Vector2u end_pos){
 			return true;
 	}
 
-	//promotions + en passant
+	//promotions + en passant TODO
 
 	return false;
 }
@@ -310,5 +415,49 @@ bool Game::kingMove(sf::Vector2u start_pos, sf::Vector2u end_pos){
 			return true;
 	}
 
+	//checking for opposition + castles TODO
+
+
 	return false;
 }
+
+void movePiece(Square* from, Square* to){
+    if(from->resident == nullptr){
+        std::cout<<"nullptr \n";
+        return;
+    }
+        
+
+    if(to->resident != nullptr)
+        delete to->resident;
+
+	from->resident->pieceWasMoved();
+    to->resident = from->resident;
+    from->resident = nullptr;
+}
+
+void Game::updateBoard(Square* origin, Square* target, sf::Vector2u end_pos){
+	movePiece(origin,target);
+
+	if(whoseTurn == usw){
+		if(origin->getResident()!= nullptr){
+			if(origin->getResident()->getType() == pieceType::king)
+				w_kingptr = target;
+				w_king_pos = end_pos;
+		}
+
+		whoseTurn == usb;
+	}
+
+	else{
+		if(origin->getResident()!= nullptr){
+			if(origin->getResident()->getType() == pieceType::king)
+				b_kingptr = target;
+				b_king_pos = end_pos;
+		}
+
+		whoseTurn == usw;
+	}
+}
+
+

@@ -13,13 +13,12 @@ public:
     const chess_color& getColor(){return clr;}
     const pieceType& getType(){return type;}
     const bool wasMoved(){return wasMovedPreviously;}
+    void pieceWasMoved(){if(!wasMovedPreviously) wasMovedPreviously = true;}
 private:  
     chess_color clr;
     pieceType type;
     bool wasMovedPreviously;
 };
-
-//void movePiece(Square* from, Square* to); //<----TODO
 
 class Square {
 
@@ -29,10 +28,12 @@ public:
     Piece* getResident(){return resident;}
 
 private:
-    //friend void movePiece(Square*, Square*); // <----uncomment when movePiece is defined <--- TODO
+    friend void movePiece(Square*, Square*);
     chess_color color;
     Piece* resident;
 };
+
+void movePiece(Square* from, Square* to);
 
 class User{
 public:
@@ -51,6 +52,7 @@ public:
 private:
     void processInput();
     bool checkMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    void updateBoard(Square* origin, Square* target, sf::Vector2u end_pos);
     //------------// i have cool idea how to implement this way better but im too lazy (and idk if its correct anyways)
     bool pawnMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
     bool knightMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
@@ -65,4 +67,8 @@ private:
     User* usb; //user black
     User* whoseTurn;
     Square* board[8][8];
+    Square* w_kingptr; //this and below should be a structure i guess
+    sf::Vector2u w_king_pos;
+    Square* b_kingptr;
+    sf::Vector2u b_king_pos;
 };
