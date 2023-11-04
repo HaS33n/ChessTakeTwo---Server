@@ -18,6 +18,7 @@ void ServerManager::runServer(){
                 if (listener.accept(*client) == sf::Socket::Done)
                 {
                     clients.push_back(client);
+                    //send client their position in queue <------TODO
                     selector.add(*client);
                 }
                 else

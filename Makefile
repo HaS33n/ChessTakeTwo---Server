@@ -7,7 +7,7 @@ INCLUDE	:= include
 LIB		:= lib
 
 LIBRARIES	:= -lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio -lsfml-network
-EXECUTABLE	:= main.cpp
+EXECUTABLE	:= main
 
 
 all: $(BIN)/$(EXECUTABLE)

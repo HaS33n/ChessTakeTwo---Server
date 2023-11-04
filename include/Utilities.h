@@ -9,12 +9,14 @@ enum class pieceType{king,queen,knight,bishop,rook,pawn};
 class Piece {
 
 public:
-    Piece(chess_color color, pieceType t){clr = color; type = t;}
+    Piece(chess_color color, pieceType t){clr = color; type = t;wasMovedPreviously = false;}
     const chess_color& getColor(){return clr;}
     const pieceType& getType(){return type;}
+    const bool wasMoved(){return wasMovedPreviously;}
 private:  
     chess_color clr;
     pieceType type;
+    bool wasMovedPreviously;
 };
 
 //void movePiece(Square* from, Square* to); //<----TODO
@@ -49,7 +51,16 @@ public:
 private:
     void processInput();
     bool checkMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
-    
+    //------------// i have cool idea how to implement this way better but im too lazy (and idk if its correct anyways)
+    bool pawnMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    bool knightMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    bool bishopMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    bool rookMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    bool queenMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    bool kingMove(sf::Vector2u start_pos, sf::Vector2u end_pos);
+    //variable overflow is not a problem here ^^
+    //need to implement special moves, such as castle and promotion
+
     User* usw; //user white
     User* usb; //user black
     User* whoseTurn;
