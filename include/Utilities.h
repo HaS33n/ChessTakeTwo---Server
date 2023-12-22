@@ -63,6 +63,8 @@ private:
     //variable overflow is not a problem here ^^
     //need to implement special moves, such as castle and promotion
 
+
+    //declaring like this provides me better ovierview rn, i will change it later
     User* usw; //user white
     User* usb; //user black
     User* whoseTurn;
@@ -71,4 +73,10 @@ private:
     sf::Vector2u w_king_pos;
     Square* b_kingptr;
     sf::Vector2u b_king_pos;
+
+    Square* en_passant_sqr;
+    bool en_passant; //was enpassant a move
+    bool current_move_by_2;
+    bool was_last_move_by_2;
+
 };

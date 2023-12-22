@@ -4,6 +4,10 @@ Game::Game(User* u1, User* u2){
     usw=u1;
     usb=u2;
     whoseTurn = usw;
+	en_passant_sqr = nullptr;
+	en_passant = false;
+	current_move_by_2 = false;
+	was_last_move_by_2 = false;
 
 	bool isWhite = true;
 	//send to u1 their color
@@ -131,7 +135,7 @@ void Game::processInput(){ //need proper error handling
 
 		//send to other user move info
 		sf::Packet u2_pack;
-		u2_pack<<start_pos.x<<start_pos.y<<end_pos.x<<end_pos.y; //send additional info if he's checked + special moves TODO
+		u2_pack<<start_pos.x<<start_pos.y<<end_pos.x<<end_pos.y<<en_passant; //send additional info if he's checked + special moves TODO
 		if(whoseTurn == usw)
 			usb->sckt->send(u2_pack);
 		
@@ -278,18 +282,42 @@ bool Game::checkMove(sf::Vector2u start_pos, sf::Vector2u end_pos){
 
 bool Game::pawnMove(sf::Vector2u start_pos, sf::Vector2u end_pos){
 	bool was_moved = board[start_pos.x][start_pos.y]->getResident()->wasMoved();
-
+if(board[start_pos.x][start_pos.y]->getResident()->getColor() == chess_color::white){
 	if(start_pos.x == end_pos.x && end_pos.y == start_pos.y + 1 && board[end_pos.x][end_pos.y]->getResident() == nullptr) //move by 1
 		return true;
 	
-	if(start_pos.x == end_pos.x && end_pos.y == start_pos.y + 2 && !was_moved && board[end_pos.x][end_pos.y]->getResident() == nullptr && board[end_pos.x][end_pos.y-1]->getResident() == nullptr) //move by 2
+	if(start_pos.x == end_pos.x && end_pos.y == start_pos.y + 2 && !was_moved && board[end_pos.x][end_pos.y]->getResident() == nullptr && board[end_pos.x][end_pos.y-1]->getResident() == nullptr){ //move by 2
+		en_passant_sqr = board[end_pos.x][end_pos.y - 1];
+		current_move_by_2 = true; //nie wiem kurwa
 		return true;
+	} 
+		
+	if((end_pos.x == start_pos.x +1 || end_pos.x == start_pos.x -1) && (end_pos.y == start_pos.y +1) && board[end_pos.x][end_pos.y] == en_passant_sqr){ //en passant
+		en_passant = true;
+		return true;
+	}
+
 
 	if((end_pos.x == start_pos.x +1 || end_pos.x == start_pos.x -1) && (end_pos.y == start_pos.y +1)){ // take (overflow isnt a problem here)
 		if(board[end_pos.x][end_pos.y]->getResident() != nullptr)
 			return true;
 	}
+}
 
+else{
+	if(start_pos.x == end_pos.x && end_pos.y == start_pos.y - 1 && board[end_pos.x][end_pos.y]->getResident() == nullptr) //move by 1
+		return true;
+	
+	if(start_pos.x == end_pos.x && end_pos.y == start_pos.y - 2 && !was_moved && board[end_pos.x][end_pos.y]->getResident() == nullptr && board[end_pos.x][end_pos.y-1]->getResident() == nullptr){ //move by 2
+		en_passant_sqr = board[end_pos.x][end_pos.y + 1];
+		return true;
+	}
+
+	if((end_pos.x == start_pos.x +1 || end_pos.x == start_pos.x -1) && (end_pos.y == start_pos.y -1)){ // take (overflow isnt a problem here)
+		if(board[end_pos.x][end_pos.y]->getResident() != nullptr)
+			return true;
+	}
+}
 	//promotions + en passant TODO
 
 	return false;
@@ -426,7 +454,6 @@ void movePiece(Square* from, Square* to){
         std::cout<<"nullptr \n";
         return;
     }
-        
 
     if(to->resident != nullptr)
         delete to->resident;
@@ -438,6 +465,15 @@ void movePiece(Square* from, Square* to){
 
 void Game::updateBoard(Square* origin, Square* target, sf::Vector2u end_pos){
 	movePiece(origin,target);
+
+	if(en_passant){
+		if(whoseTurn->color == chess_color::white)
+			board[end_pos.x][end_pos.y - 1] == nullptr;
+
+		else
+			board[end_pos.x][end_pos.y + 1] == nullptr;
+	}
+	en_passant = false;	
 
 	if(whoseTurn == usw){
 		if(origin->getResident()!= nullptr){
